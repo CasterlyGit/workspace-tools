@@ -13,6 +13,7 @@ Schema appended into <repo>/inbox/.state.json under the matching ticket entry:
       ...
     ]
     "shape":         "full"
+    "last_activity": "writing src/foo.py …"  # rolling sub-stage breadcrumb
     "last_updated":  "2026-..."
 
 The `regenerate_status` function in inbox-process.sh is responsible for
@@ -22,6 +23,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -33,6 +35,7 @@ class StateSink:
         self.total_stages = total_stages
         self._state_file = repo_path / "inbox" / ".state.json"
         self._index = 0
+        self._last_activity_write = 0.0  # monotonic seconds, for throttling
 
     # ── public API matched to PipelineHooks ──────────────────────────────────
 
@@ -52,10 +55,29 @@ class StateSink:
 
     def stage_start(self, name: str) -> None:
         self._index += 1
+        self._last_activity_write = 0.0  # let the first line of this stage publish immediately
         self._mutate(lambda e: {
             **e,
             "current_stage": name,
             "stage_index": self._index,
+            "last_activity": None,
+            "last_updated": _now(),
+        })
+
+    def note_activity(self, line: str) -> None:
+        """Sub-stage breadcrumb. Called once per agent stdout line; throttled
+        so we don't rewrite the JSON on every token."""
+        line = (line or "").strip()
+        if not line:
+            return
+        now = time.monotonic()
+        if now - self._last_activity_write < 2.0:
+            return
+        self._last_activity_write = now
+        snippet = line[:120]
+        self._mutate(lambda e: {
+            **e,
+            "last_activity": snippet,
             "last_updated": _now(),
         })
 
@@ -72,6 +94,7 @@ class StateSink:
         self._mutate(lambda e: {
             **e,
             "current_stage": None,
+            "last_activity": None,
             "agent_done": True,
             "ok": all_ok,
             "last_updated": _now(),

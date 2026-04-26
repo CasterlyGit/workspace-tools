@@ -78,6 +78,7 @@ def cmd_iterate(args: argparse.Namespace) -> int:
     def on_line(stage, line):
         if line.strip():
             print(f"[{stage.name}] {line[:200]}", flush=True)
+            state_sink.note_activity(line)
 
     hooks = PipelineHooks(
         before_pipeline=lambda ctx: state_sink.start(shape_name, len(stages)),
