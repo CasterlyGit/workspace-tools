@@ -80,9 +80,13 @@ def cmd_iterate(args: argparse.Namespace) -> int:
             print(f"[{stage.name}] {line[:200]}", flush=True)
             state_sink.note_activity(line)
 
+    # Map stage name → 1-based position so the live status shows the user's
+    # mental position in the pipeline, not "count of non-skipped stages so far".
+    stage_positions = {s.name: i + 1 for i, s in enumerate(stages)}
+
     hooks = PipelineHooks(
         before_pipeline=lambda ctx: state_sink.start(shape_name, len(stages)),
-        before_stage=lambda stage, ctx: state_sink.stage_start(stage.name),
+        before_stage=lambda stage, ctx: state_sink.stage_start(stage.name, stage_positions[stage.name]),
         after_stage=lambda stage, ctx, res: state_sink.stage_done(stage.name, res.ok),
         after_pipeline=lambda ctx, results: state_sink.finish(all_ok=all(r.ok or r.skipped for r in results)),
         on_agent_line=on_line,
