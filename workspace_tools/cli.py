@@ -56,6 +56,18 @@ def cmd_iterate(args: argparse.Namespace) -> int:
     ensure_branch(repo, branch)
 
     flow_dir = repo_path / ".flow" / f"issue-{issue.number}"
+
+    # Shape selection — explicit flag wins, else infer from labels + body
+    shape_name = args.shape or shape_for_issue(issue.labels, issue.body)
+    stages = pick_shape(shape_name)
+    print(f"[iterate] shape: {shape_name} ({len(stages)} stage(s))", flush=True)
+
+    # Honour --rerun-from <stage>. Has to happen AFTER ensure_branch
+    # (above), because git checkout restores any tracked artifacts from
+    # HEAD. Deleting before checkout is a no-op for git-tracked files.
+    if args.rerun_from:
+        _clear_artifacts_from(args.rerun_from, flow_dir, stages)
+
     ctx = StageContext(
         repo_path=repo_path,
         flow_dir=flow_dir,
@@ -64,11 +76,6 @@ def cmd_iterate(args: argparse.Namespace) -> int:
         issue_url=issue.url,
         extra={"branch": branch, "repo": repo},
     )
-
-    # Shape selection — explicit flag wins, else infer from labels + body
-    shape_name = args.shape or shape_for_issue(issue.labels, issue.body)
-    stages = pick_shape(shape_name)
-    print(f"[iterate] shape: {shape_name} ({len(stages)} stage(s))", flush=True)
 
     # State sink: writes live progress to inbox/.state.json so _status.md
     # can show stage X/N as the orchestrator advances.
@@ -138,6 +145,38 @@ def _force_status_refresh() -> None:
         pass
 
 
+def _clear_artifacts_from(stage_name: str, flow_dir: Path, stages) -> None:
+    """Delete the artifact for `stage_name` and every stage after it in
+    `stages`, so the pipeline re-runs them.
+
+    Used by --rerun-from to make amend-style refires actually do work.
+    Without this, a 'go' on an already-completed ticket no-ops because
+    every stage's skip-on-artifact-present check kicks in.
+
+    Note: must be called AFTER ensure_branch / git checkout, otherwise the
+    checkout restores any tracked artifact files from HEAD and the
+    deletion is invisible to the pipeline."""
+    stage_names = [s.name for s in stages]
+    if stage_name not in stage_names:
+        print(f"[iterate] --rerun-from: stage '{stage_name}' not in this "
+              f"pipeline shape ({', '.join(stage_names)}); ignoring",
+              flush=True)
+        return
+    start = stage_names.index(stage_name)
+    deleted = []
+    for s in stages[start:]:
+        artifact = flow_dir / s.artifact_filename
+        if artifact.exists():
+            artifact.unlink()
+            deleted.append(s.artifact_filename)
+    if deleted:
+        print(f"[iterate] --rerun-from {stage_name}: cleared "
+              f"{', '.join(deleted)} so they will re-run", flush=True)
+    else:
+        print(f"[iterate] --rerun-from {stage_name}: nothing to clear "
+              f"(no artifacts present from {stage_name} onward)", flush=True)
+
+
 def cmd_automate(args: argparse.Namespace) -> int:
     print("[automate] not yet implemented in the new orchestrator — coming next.", flush=True)
     return 1
@@ -153,6 +192,14 @@ def main(argv: list[str] | None = None) -> int:
     p_it.add_argument("--shape", help="pipeline shape: full | feature | bugfix | bug | quickfix | polish | chore. "
                                        "Default: inferred from issue labels + body length.",
                        default=None)
+    p_it.add_argument("--rerun-from", dest="rerun_from", default=None,
+                       help="Force a re-run from this stage onward. Deletes the "
+                            "named stage's artifact AND every later stage's "
+                            "artifact, so the pipeline can't skip them. Stage "
+                            "names: explore, research, requirements, design, "
+                            "test-plan, implement, integration-test. Used by "
+                            "the inbox 'add more' flow to incorporate new "
+                            "requirements posted as issue comments.")
 
     p_au = sub.add_parser("automate", help="greenfield: turn an idea into a new project")
     p_au.add_argument("idea", help="one-line description of what to build")

@@ -44,7 +44,9 @@ Testable, behavior-level statements. Each yes/no by inspection or test.
 - <unknowns the next stage (design) needs to resolve>
 ```
 
-## The target / issue
+## The target / issue (body + every comment)
+
+The block below is the full issue text — original body plus every comment, in order. Treat **comments as first-class content**: they may add new acceptance criteria, refine existing ones, or change priority. If a comment contradicts the original body, the most recent wins. If a comment adds a feature, derive an AC for it. Do not silently drop any user-stated ask as "out of scope" unless the user explicitly wrote that — if you're unsure, include it in `## Open questions` rather than dropping it.
 
 ```
 {issue_text}
@@ -52,7 +54,7 @@ Testable, behavior-level statements. Each yes/no by inspection or test.
 
 ## Discipline
 
-- 3–8 ACs. More than 8 = mixing concerns.
+- 3–8 ACs. More than 8 = mixing concerns. If the user has piled on more, fold related asks into one AC or list them in Open questions.
 - Behavior-level, not implementation-level (no "use a hashmap").
 - Every AC must reference a real UI element, file, signal, exit code, etc. by name.
 
