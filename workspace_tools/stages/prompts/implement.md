@@ -5,8 +5,8 @@ Task ID: `{task_id}`
 
 ## Reads
 
-- `{flow_dir}/DESIGN.md` (the contract)
-- `{flow_dir}/TEST_PLAN.md` (what passes)
+- `{flow_dir}/DESIGN.md` — **may be absent** in lighter pipeline shapes. If missing, design from the issue body below; the design is whatever needs to change to satisfy it.
+- `{flow_dir}/TEST_PLAN.md` — **may be absent** in lighter pipeline shapes. If missing, write a regression test alongside the fix.
 
 ## What this stage produces
 

@@ -5,9 +5,9 @@ Task ID: `{task_id}`
 
 ## Reads
 
-- `{flow_dir}/EXPLORE.md` (skip if greenfield)
-- `{flow_dir}/RESEARCH.md`
-- `{flow_dir}/REQUIREMENTS.md`
+- `{flow_dir}/EXPLORE.md` (skip if greenfield or not present)
+- `{flow_dir}/RESEARCH.md` (skip if not present)
+- `{flow_dir}/REQUIREMENTS.md` — **may be absent** in lighter pipeline shapes (bugfix, quickfix). If missing, derive ACs from the issue body below and use those as the contract.
 
 ## What this stage produces
 
@@ -65,7 +65,7 @@ A single artifact at: **`{artifact_path}`**
 
 ## Discipline
 
-- Map every AC in REQUIREMENTS.md to a component or decision.
+- Map every AC (from REQUIREMENTS.md if present, otherwise extracted from the issue body) to a component or decision.
 - Resolve all "Open questions" — pick a side, justify, or escalate (commit but flag for human review).
 - Reuse existing patterns from EXPLORE.md → "Prior art" before inventing.
 - Pseudocode in tables OK. **No code in this stage.**

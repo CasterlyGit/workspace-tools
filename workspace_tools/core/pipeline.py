@@ -97,12 +97,17 @@ class Pipeline:
             self.log(f"[stage:{stage.name}] skip (skip_when fired)")
             return StageResult(skipped=True)
 
-        # Verify dependencies
+        # `reads` is advisory — log if a declared input is missing, but
+        # don't halt. Lighter pipeline shapes (quickfix, bugfix) deliberately
+        # skip earlier stages, so a missing REQUIREMENTS.md or DESIGN.md is
+        # expected; the agent should adapt from the issue body + whatever
+        # artifacts ARE present. Halting was forcing every shape to include
+        # every dependency, which defeats the point of having lighter shapes.
         for read in stage.reads:
             if not (ctx.flow_dir / read).exists():
-                err = f"missing dependency {read}"
-                self.log(f"[stage:{stage.name}] {err}")
-                return StageResult(success=False, error=err)
+                self.log(f"[stage:{stage.name}] note: declared read '{read}' "
+                         f"not present (pipeline shape skipped its producer); "
+                         f"agent will work from the issue body + present artifacts")
 
         if self.hooks.before_stage:
             self.hooks.before_stage(stage, ctx)
