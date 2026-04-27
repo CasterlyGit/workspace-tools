@@ -96,6 +96,7 @@ def cmd_iterate(args: argparse.Namespace) -> int:
 
     if not run.all_ok:
         print(f"\n[iterate] pipeline halted; partial branch left at {branch}", flush=True)
+        _force_status_refresh()
         return 2
 
     # Push the branch + open PR (or update existing)
@@ -116,7 +117,25 @@ def cmd_iterate(args: argparse.Namespace) -> int:
         pr_url = pr["url"]
         print(f"\n[iterate] PR opened: {pr_url}", flush=True)
 
+    # Belt-and-suspenders: directly invoke the renderer so the user's
+    # _status.md flips to "PR open" immediately. Relying on fswatch alone
+    # races the post-pipeline push: pipeline.finish() writes [pipeline-done]
+    # to the iter log BEFORE the branch is pushed, so the first redraw sees
+    # no PR yet, and fswatch can coalesce the later "PR opened" write.
+    _force_status_refresh()
     return 0
+
+
+def _force_status_refresh() -> None:
+    """Synchronously call the inbox renderer so _status.md catches up to
+    whatever final state we just left in state.json. Best-effort — silent
+    failure if the script is missing or slow."""
+    import subprocess
+    try:
+        subprocess.run(["/Users/casterly/bin/inbox-process.sh"],
+                       timeout=15, check=False)
+    except Exception:
+        pass
 
 
 def cmd_automate(args: argparse.Namespace) -> int:
