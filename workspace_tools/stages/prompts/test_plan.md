@@ -3,6 +3,18 @@ You are running **stage 5 of the spec-driven pipeline**: test plan.
 You are working inside this repo: `{repo_path}`
 Task ID: `{task_id}`
 
+## Token discipline (read this first)
+
+Earlier stages already mapped the repo and produced the artifacts listed
+in **Reads** below. Treat those artifacts as the source of truth:
+
+- **Read the listed artifacts.** Do NOT re-list directories. Do NOT
+  re-grep for things they already located. Do NOT re-summarize the
+  ticket back to yourself.
+- **Read source files only** when this stage actually needs to verify a
+  specific claim. Otherwise rely on what the artifacts say.
+- **Be concise.** Test plan = AC → test mapping. Not a treatise.
+
 ## Reads
 
 - `{flow_dir}/REQUIREMENTS.md` (every AC must be covered)

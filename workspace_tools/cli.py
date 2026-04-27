@@ -57,8 +57,18 @@ def cmd_iterate(args: argparse.Namespace) -> int:
 
     flow_dir = repo_path / ".flow" / f"issue-{issue.number}"
 
-    # Shape selection — explicit flag wins, else infer from labels + body
-    shape_name = args.shape or shape_for_issue(issue.labels, issue.body)
+    # Shape selection — explicit flag wins, else check for PR feedback,
+    # else infer from labels + body
+    if args.shape:
+        shape_name = args.shape
+    else:
+        # If there's user feedback posted (PR comment), use lightweight feedback shape
+        feedback = issue.user_feedback()
+        if feedback:
+            shape_name = "feedback"
+            print(f"[iterate] detected PR feedback; using 'feedback' shape (2-5 min)", flush=True)
+        else:
+            shape_name = shape_for_issue(issue.labels, issue.body)
     stages = pick_shape(shape_name)
     print(f"[iterate] shape: {shape_name} ({len(stages)} stage(s))", flush=True)
 
@@ -68,12 +78,22 @@ def cmd_iterate(args: argparse.Namespace) -> int:
     if args.rerun_from:
         _clear_artifacts_from(args.rerun_from, flow_dir, stages)
 
+    # --amend: clear ALL artifacts for the current shape and re-run from
+    # stage 1 with the new ticket content. Used by the inbox amend flow
+    # when the user edited the ticket file; avoids the stale-DESIGN bug
+    # where new ACs became artifact-only commits with no code.
+    if getattr(args, "amend", False) and stages:
+        _clear_artifacts_from(stages[0].name, flow_dir, stages)
+        print(f"[iterate] --amend: cleared all artifacts; re-running shape "
+              f"from {stages[0].name}", flush=True)
+
     ctx = StageContext(
         repo_path=repo_path,
         flow_dir=flow_dir,
         task_id=f"issue-{issue.number}",
         issue_text=issue.aggregated_text(),
         issue_url=issue.url,
+        user_feedback=issue.user_feedback() or "",
         extra={"branch": branch, "repo": repo},
     )
 
@@ -106,6 +126,19 @@ def cmd_iterate(args: argparse.Namespace) -> int:
         _force_status_refresh()
         return 2
 
+    # Surface escalation signals from light-shape stages. The instant stage
+    # writes `ESCALATE: <reason>` to INSTANT.log when the change is too
+    # ambiguous for one shot; the implement stage writes `NEEDS_DESIGN: …`
+    # when ACs aren't covered by DESIGN.md. Either way the user sees it
+    # and can re-run with a heavier shape.
+    escalation = _detect_escalation(flow_dir, stages)
+    if escalation:
+        print(f"\n[iterate] ESCALATION: {escalation}", flush=True)
+        print(f"[iterate] add `pipeline: bugfix` (or full) to the ticket and "
+              f"click go again to re-run with a heavier shape", flush=True)
+        _force_status_refresh()
+        return 3
+
     # Push the branch + open PR (or update existing)
     push(repo, branch)
     existing = pr_open_for_branch(repo, branch)
@@ -131,6 +164,25 @@ def cmd_iterate(args: argparse.Namespace) -> int:
     # no PR yet, and fswatch can coalesce the later "PR opened" write.
     _force_status_refresh()
     return 0
+
+
+def _detect_escalation(flow_dir: Path, stages) -> str | None:
+    """Scan light-shape artifacts for escalation markers. Returns the reason
+    string if the agent gave up, else None."""
+    for s in stages:
+        artifact = flow_dir / s.artifact_filename
+        if not artifact.exists():
+            continue
+        try:
+            head = artifact.read_text(encoding="utf-8", errors="replace")[:500]
+        except Exception:
+            continue
+        for marker in ("ESCALATE:", "NEEDS_DESIGN:"):
+            idx = head.find(marker)
+            if idx >= 0:
+                line = head[idx:].splitlines()[0]
+                return f"{s.name}: {line}"
+    return None
 
 
 def _force_status_refresh() -> None:
@@ -189,17 +241,20 @@ def main(argv: list[str] | None = None) -> int:
 
     p_it = sub.add_parser("iterate", help="run the SDD pipeline against a GitHub issue")
     p_it.add_argument("issue", help="full issue URL, owner/repo#N, or 'next' for top of project board")
-    p_it.add_argument("--shape", help="pipeline shape: full | feature | bugfix | bug | quickfix | polish | chore. "
-                                       "Default: inferred from issue labels + body length.",
+    p_it.add_argument("--shape", help="pipeline shape: instant | fast | quickfix | bugfix | full | feature. "
+                                       "Default: inferred from issue labels + magic line. "
+                                       "Most tickets default to `instant` (one fast call).",
                        default=None)
     p_it.add_argument("--rerun-from", dest="rerun_from", default=None,
                        help="Force a re-run from this stage onward. Deletes the "
                             "named stage's artifact AND every later stage's "
-                            "artifact, so the pipeline can't skip them. Stage "
-                            "names: explore, research, requirements, design, "
-                            "test-plan, implement, integration-test. Used by "
-                            "the inbox 'add more' flow to incorporate new "
-                            "requirements posted as issue comments.")
+                            "artifact. Stage names depend on the shape "
+                            "(instant has only `instant`).")
+    p_it.add_argument("--amend", action="store_true",
+                       help="Clear ALL artifacts for the current shape and re-run "
+                            "from stage 1. Used by the inbox amend flow when the "
+                            "user edited the ticket file. Avoids the stale-DESIGN "
+                            "bug where new ACs became artifact-only commits.")
 
     p_au = sub.add_parser("automate", help="greenfield: turn an idea into a new project")
     p_au.add_argument("idea", help="one-line description of what to build")

@@ -3,6 +3,18 @@ You are running **stage 7 of the spec-driven pipeline**: integration & verificat
 You are working inside this repo: `{repo_path}`
 Task ID: `{task_id}`
 
+## Token discipline (read this first)
+
+Earlier stages already mapped the repo and produced the artifacts listed
+in **Reads** below. Treat those artifacts as the source of truth:
+
+- **Read the listed artifacts.** Do NOT re-list directories. Do NOT
+  re-grep for things they already located. Do NOT re-summarize the
+  ticket back to yourself.
+- **Run the targeted tests** the test plan calls for; don't expand the
+  surface unless the spec changed.
+- **Be concise.** Pass/fail per AC + a one-line PR summary. Not a recap.
+
 ## Reads
 
 - `{flow_dir}/REQUIREMENTS.md` (the ACs)

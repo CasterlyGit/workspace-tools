@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Optional
 
 
 @dataclass
@@ -24,7 +24,8 @@ class StageContext:
     task_id: str                    # e.g. "issue-13" or "init"
     issue_text: str                 # title + body + comments (or the idea, for greenfield)
     issue_url: str                  # may be empty for greenfield
-    extra: dict                     # free-form for callers / future hooks
+    user_feedback: str = ""         # last comment on the issue/PR (amend feedback)
+    extra: dict = field(default_factory=dict)   # free-form for callers / future hooks
 
 
 @dataclass
@@ -57,6 +58,7 @@ class Stage:
             repo_path=ctx.repo_path,
             issue_text=ctx.issue_text,
             issue_url=ctx.issue_url,
+            user_feedback=ctx.user_feedback,
             artifact_path=ctx.flow_dir / self.artifact_filename,
             reads=", ".join(str(ctx.flow_dir / r) for r in self.reads),
         )

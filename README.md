@@ -5,6 +5,30 @@ pipelines deterministically. Replaces the markdown-prompt `/iterate` skill —
 which was brittle (a stage prompt saying _"Stop."_ would end a multi-stage run
 early) — with a Python orchestrator that loops through stages explicitly.
 
+## Fundamental principle: default to fast
+
+Most tickets are small. A multi-stage SDD pipeline spends most of its tokens
+re-exploring the repo, paraphrasing the ticket as REQUIREMENTS.md, and
+paraphrasing the diff as DESIGN.md. For a one-file fix that's pure waste.
+
+So:
+
+- **Default shape is `instant`** — one Haiku call. Reads the ticket, edits
+  code, commits. Target: 60-180s.
+- **`quickfix`** adds an explore step (still Haiku) for tickets that need a
+  bit of repo orientation.
+- **`bugfix`** keeps a real design doc (Sonnet) for genuine bugs where the
+  theory of the fix matters.
+- **`full`** is the seven-stage SDD pipeline (Sonnet) for ambiguous features.
+
+**Escalation is explicit, not silent.** If a ticket is ambiguous, the
+`instant` stage writes `ESCALATE: <reason>` instead of code; if amend-time
+ACs aren't covered by DESIGN.md, the `implement` stage writes
+`NEEDS_DESIGN: …`. The orchestrator surfaces both — the user re-runs with a
+heavier shape (`pipeline: bugfix` or `full` magic line in the ticket).
+
+**Never run a heavier shape silently.** It's the user's tokens.
+
 ## What's in here
 
 ```
@@ -35,9 +59,9 @@ It will:
 1. Fetch the issue (title, body, comments).
 2. Ensure the local clone exists at `~/Documents/Dev/<repo>/`.
 3. Switch to (or create) `auto/<N>-<slug>` branch.
-4. Run each stage in order: explore → research → requirements → design → test-plan → implement → integration-test.
-5. After each stage, verify the artifact and commit it.
-6. After all stages, push the branch and open a PR.
+4. **Pick a shape** — default `instant` unless the ticket has a `pipeline:` magic line or a label that maps to a heavier shape.
+5. Run the shape's stages in order. After each stage, verify the artifact and commit it.
+6. Push the branch and open a PR — unless the agent escalated, in which case the orchestrator exits with code 3 and surfaces the reason.
 
 **Resume**: re-running on the same issue picks up where it stopped. Each
 stage skips itself if its artifact already exists on disk (i.e. a previous

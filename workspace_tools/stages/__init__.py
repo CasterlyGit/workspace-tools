@@ -5,11 +5,25 @@ stages/prompts/<name>.md. Add a new stage by:
     2. construct a Stage() here, give it a unique name + artifact_filename
     3. include it in whatever pipeline shapes need it (workspace_tools/pipelines/)
 
-Nothing else in the codebase knows the list of stages — Pipeline takes any list."""
+Nothing else in the codebase knows the list of stages — Pipeline takes any list.
+
+Models per stage are NOT set here — they are applied at the shape level in
+workspace_tools/pipelines/ via `dataclasses.replace(stage, extra_args=…)`.
+That keeps the cost / speed knob in one place: the pipeline shape."""
 from __future__ import annotations
 
 from ..core.stage import Stage, load_prompt
 
+
+# Single-call shape: read ticket → make code change → commit. No artifacts
+# beyond INSTANT.log. Fast model. Default for most tickets.
+INSTANT = Stage(
+    name="instant",
+    artifact_filename="INSTANT.log",
+    reads=[],
+    prompt_template=load_prompt("instant.md"),
+    timeout_s=600,
+)
 
 EXPLORE = Stage(
     name="explore",
@@ -69,6 +83,6 @@ INTEGRATION_TEST = Stage(
 
 
 __all__ = [
-    "EXPLORE", "RESEARCH", "REQUIREMENTS", "DESIGN",
+    "INSTANT", "EXPLORE", "RESEARCH", "REQUIREMENTS", "DESIGN",
     "TEST_PLAN", "IMPLEMENT", "INTEGRATION_TEST",
 ]

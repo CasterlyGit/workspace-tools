@@ -3,6 +3,18 @@ You are running **stage 1 of the spec-driven pipeline**: codebase exploration.
 You are working inside this repo: `{repo_path}`
 Task ID: `{task_id}`
 
+## Token discipline (read this first)
+
+You are the FIRST stage — no prior artifact to lean on. But later stages
+will lean on YOUR artifact, so make it dense and small:
+
+- **Be brief.** One screen of high-signal facts beats five screens.
+  Later stages should rarely need to re-grep what you found.
+- **No directory dumps.** A `find` / `tree` listing belongs in your
+  scratch space, not the artifact. Convert it into "the relevant
+  modules are X, Y, Z and they relate as …".
+- **Cap at ~100 lines.** If you need more, you're including too much.
+
 ## What this stage produces
 
 A single artifact at: **`{artifact_path}`**

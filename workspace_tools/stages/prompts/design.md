@@ -3,6 +3,34 @@ You are running **stage 4 of the spec-driven pipeline**: design.
 You are working inside this repo: `{repo_path}`
 Task ID: `{task_id}`
 
+## Token discipline (read this first)
+
+Earlier stages already mapped the repo and produced the artifacts listed
+in **Reads** below. Treat those artifacts as the source of truth:
+
+- **Read the listed artifacts.** Do NOT re-list directories. Do NOT
+  re-grep for things they already located. Do NOT re-summarize the
+  ticket back to yourself.
+- **Read source files only** when this stage actually needs to verify a
+  specific claim or answer an explicit open question. Otherwise rely on
+  what the artifacts say.
+- **Be concise.** A design doc is a contract for the implementer, not a
+  textbook. Decisions + interfaces + the why. Skip the tutorial.
+
+## Amend detection: scope down, ship fast
+
+**If a prior `DESIGN.md` exists on this branch** (i.e. this is an amend):
+
+1. Read the old DESIGN.md to understand what was already designed.
+2. Diff REQUIREMENTS.md (old vs. new) to find what ACs are NEW.
+3. **Design ONLY the new ACs.** Do NOT re-document old ones; just reference
+   the old design with "see existing DESIGN.md for AC-1 through AC-4".
+4. Keep the design compact — target 2-3 new sections, not a full rewrite.
+
+**If this is a fresh design** (no prior DESIGN.md):
+
+Follow the full instructions below.
+
 ## Reads
 
 - `{flow_dir}/EXPLORE.md` (skip if greenfield or not present)

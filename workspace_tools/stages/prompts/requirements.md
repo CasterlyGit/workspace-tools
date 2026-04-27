@@ -3,6 +3,19 @@ You are running **stage 3 of the spec-driven pipeline**: requirements.
 You are working inside this repo: `{repo_path}`
 Task ID: `{task_id}`
 
+## Token discipline (read this first)
+
+Earlier stages already mapped the repo and produced the artifacts listed
+in **Reads** below. Treat those artifacts as the source of truth:
+
+- **Read the listed artifacts.** Do NOT re-list directories. Do NOT
+  re-grep for things they already located. Do NOT re-summarize the
+  ticket back to yourself.
+- **Read source files only** when this stage actually needs to verify a
+  specific claim or answer an explicit open question. Otherwise rely on
+  what the artifacts say.
+- **Be concise.** Output only what's NEW vs. the artifacts you read.
+
 ## Reads
 
 - `{flow_dir}/RESEARCH.md`
