@@ -1,0 +1,19 @@
+{
+  "$comment": "Standard GitHub Projects v2 field kit applied by /board-setup. Status options replace the default Todo/In Progress/Done; Priority and Target are added.",
+  "status_options": [
+    { "name": "Backlog",     "color": "GRAY",   "description": "Filed, not yet scheduled" },
+    { "name": "Up Next",     "color": "PURPLE", "description": "Top of the queue — pull next" },
+    { "name": "In Progress", "color": "BLUE",   "description": "Actively being worked on" },
+    { "name": "In Review",   "color": "YELLOW", "description": "PR open, awaiting human review" },
+    { "name": "Done",        "color": "GREEN",  "description": "Shipped / merged / closed" }
+  ],
+  "priority_options": [
+    { "name": "P0", "color": "RED",    "description": "Drop everything" },
+    { "name": "P1", "color": "ORANGE", "description": "High — next up" },
+    { "name": "P2", "color": "YELLOW", "description": "Medium — soon" },
+    { "name": "P3", "color": "GRAY",   "description": "Low / nice to have" }
+  ],
+  "extra_fields": [
+    { "name": "Target",      "type": "TEXT",     "description": "Version / milestone (free-form)" }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "$comment": "Standard label kit applied to every project repo by /label-sync. Idempotent — running twice updates color/description but doesn't duplicate.",
+  "labels": [
+    { "name": "bug",                  "color": "d73a4a", "description": "Something broken" },
+    { "name": "feature",              "color": "0075ca", "description": "New capability" },
+    { "name": "polish",               "color": "a2eeef", "description": "Quality / UX improvement" },
+    { "name": "chore",                "color": "fef2c0", "description": "Maintenance — deps, refactor, infra" },
+    { "name": "docs",                 "color": "0052cc", "description": "Documentation only" },
+    { "name": "security",             "color": "b60205", "description": "Security-sensitive" },
+
+    { "name": "priority:p0",          "color": "b60205", "description": "Drop everything" },
+    { "name": "priority:p1",          "color": "d93f0b", "description": "High — next up" },
+    { "name": "priority:p2",          "color": "fbca04", "description": "Medium — soon" },
+    { "name": "priority:p3",          "color": "c5def5", "description": "Low / nice to have" },
+
+    { "name": "blocker",              "color": "b60205", "description": "Blocking another issue or release" },
+    { "name": "manual-verification",  "color": "5319e7", "description": "Needs human-in-the-loop manual check" },
+    { "name": "ready-for-review",     "color": "0e8a16", "description": "PR ready / waiting on human" },
+    { "name": "wip",                  "color": "ededed", "description": "Work in progress" },
+    { "name": "auto-generated",       "color": "ededed", "description": "Created by curby/iterate pipeline" },
+    { "name": "needs-info",           "color": "fef2c0", "description": "Waiting on more details before work can start" }
+  ]
+}

@@ -1,170 +1,107 @@
 # workspace-tools
 
-A small Python package that runs your personal SDD (spec-driven development)
-pipelines deterministically. Replaces the markdown-prompt `/iterate` skill —
-which was brittle (a stage prompt saying _"Stop."_ would end a multi-stage run
-early) — with a Python orchestrator that loops through stages explicitly.
-
-## Fundamental principle: default to fast
-
-Most tickets are small. A multi-stage SDD pipeline spends most of its tokens
-re-exploring the repo, paraphrasing the ticket as REQUIREMENTS.md, and
-paraphrasing the diff as DESIGN.md. For a one-file fix that's pure waste.
-
-So:
-
-- **Default shape is `instant`** — one Haiku call. Reads the ticket, edits
-  code, commits. Target: 60-180s.
-- **`quickfix`** adds an explore step (still Haiku) for tickets that need a
-  bit of repo orientation.
-- **`bugfix`** keeps a real design doc (Sonnet) for genuine bugs where the
-  theory of the fix matters.
-- **`full`** is the seven-stage SDD pipeline (Sonnet) for ambiguous features.
-
-**Escalation is explicit, not silent.** If a ticket is ambiguous, the
-`instant` stage writes `ESCALATE: <reason>` instead of code; if amend-time
-ACs aren't covered by DESIGN.md, the `implement` stage writes
-`NEEDS_DESIGN: …`. The orchestrator surfaces both — the user re-runs with a
-heavier shape (`pipeline: bugfix` or `full` magic line in the ticket).
-
-**Never run a heavier shape silently.** It's the user's tokens.
+Personal agentic-development workflow: write tickets in Obsidian, click a button, watch a Claude Code skill ship a PR. Each project's GitHub repo is the data layer; an Obsidian vault is the dashboard; Claude Code skills are the workers.
 
 ## What's in here
 
 ```
-workspace_tools/
-├── core/
-│   ├── agent.py          # wraps `claude --print`. Swap providers here.
-│   ├── stage.py          # Stage = name + artifact + reads + prompt template
-│   ├── pipeline.py       # Pipeline = list[Stage] + run() with resume + hooks
-│   ├── git_ops.py        # branch, commit, push, PR helpers (gh CLI)
-│   └── issue.py          # gh issue fetch + parsing
-├── stages/
-│   ├── prompts/          # one .md file per stage. Edit a prompt → next run uses it.
-│   └── __init__.py       # registry: EXPLORE, RESEARCH, REQUIREMENTS, ...
-├── pipelines/
-│   └── __init__.py       # pre-baked shapes: sdd_brownfield(), sdd_greenfield()
-└── cli.py                # `iterate` and `automate` subcommands
+skills/         Claude Code slash commands (markdown prompts)
+  pr-amend.md       — read latest PR comment, implement delta, run tests, push, reply
+  iterate-fast.md   — file inbox ticket as issue, branch, code, test, push, open PR
+  file.md           — quick GitHub issue filer
+  automate.md       — greenfield: idea → new repo + project + initial commit
+  onboard.md        — pull an existing repo into the workflow
+  hub.md            — bootstrap the master "Workspace" project board
+  board-setup.md    — apply standard Status/Priority/Target fields to a Project v2
+  label-sync.md     — apply standard label kit to a repo
+  iterate.md        — legacy: shells out to the Python orchestrator
+  _pipeline/*       — legacy: the 7-stage SDD pipeline prompts (still loadable)
+  _templates/*      — issue templates
+  _board-kit.json   — Project v2 field config
+  _labels.json      — standard label kit
+
+bin/            Shell scripts that hold it together
+  inbox-process.sh        — renders ~/<vault>/_status.md from each repo's inbox/.state.json
+  inbox-watcher.sh        — fswatch loop: re-renders status on any inbox/ change
+  run-skill-with-state.sh — wraps a skill run, writes amending/iterating flags before/after
+  progress-tick.sh        — called from inside skills to emit step/total/label progress
+  sync-vault.sh           — symlinks each repo's inbox/ into the Obsidian vault
+  pr-test.sh              — fresh-checkout test runner for a PR
+  run-app.sh              — launch a project's app for manual testing
+
+workspace_tools/   Legacy Python orchestrator (kept around; superseded by skills/)
 ```
 
-## Running it
+## How it fits together
+
+```
+  ┌──────────────────┐
+  │ Obsidian vault   │  user writes a ticket in inbox/<slug>.md, sees the
+  │  _status.md      │  status dashboard, clicks action buttons
+  └────────┬─────────┘
+           │ fswatch on inbox/ → bin/inbox-watcher.sh → bin/inbox-process.sh
+           ▼
+  ┌──────────────────┐
+  │ inbox-process.sh │  renders _status.md from each repo's inbox/.state.json
+  │                  │  emits .command launchers in vault/_actions/ for each
+  │                  │  ticket-state combination
+  └────────┬─────────┘
+           │ user clicks ↻ re-run with feedback / ▶️ go
+           ▼
+  ┌──────────────────┐
+  │ Terminal opens   │  runs bin/run-skill-with-state.sh which:
+  │                  │   1. marks state.json: amending=true / iterating=true
+  │                  │   2. exports INBOX_STATE_FILE / INBOX_TICKET_KEY env
+  │                  │   3. launches `claude '/pr-amend <url>'` (interactive TUI)
+  └────────┬─────────┘
+           │ skill runs in user's terminal — visible streaming, can interrupt
+           ▼
+  ┌──────────────────┐
+  │ /pr-amend skill  │  at each step, calls bin/progress-tick.sh <n> 9 "<label>"
+  │ (or other skill) │  → updates state.json.progress → triggers status redraw
+  └────────┬─────────┘
+           │ skill commits, pushes, posts PR comment, exits
+           ▼
+  ┌──────────────────┐
+  │ trap on launcher │  clears amending=true / iterating=true
+  │                  │  triggers final status redraw → row flips to ✅ done
+  └──────────────────┘
+```
+
+## Install (one-shot)
 
 ```bash
+git clone https://github.com/CasterlyGit/workspace-tools.git ~/Documents/Dev/workspace-tools
 cd ~/Documents/Dev/workspace-tools
-python -m workspace_tools.cli iterate https://github.com/CasterlyGit/curby/issues/13
+./install.sh
 ```
 
-It will:
-
-1. Fetch the issue (title, body, comments).
-2. Ensure the local clone exists at `~/Documents/Dev/<repo>/`.
-3. Switch to (or create) `auto/<N>-<slug>` branch.
-4. **Pick a shape** — default `instant` unless the ticket has a `pipeline:` magic line or a label that maps to a heavier shape.
-5. Run the shape's stages in order. After each stage, verify the artifact and commit it.
-6. Push the branch and open a PR — unless the agent escalated, in which case the orchestrator exits with code 3 and surfaces the reason.
-
-**Resume**: re-running on the same issue picks up where it stopped. Each
-stage skips itself if its artifact already exists on disk (i.e. a previous
-run produced it). Delete the artifact under `<repo>/.flow/issue-N/` to force
-that stage to re-run.
-
-## Extension points (the future-proofing)
-
-### Add a new stage
-
-1. Drop `workspace_tools/stages/prompts/security_review.md` (your prompt).
-2. In `stages/__init__.py`:
-   ```python
-   SECURITY_REVIEW = Stage(
-       name="security-review",
-       artifact_filename="SECURITY_REVIEW.md",
-       reads=["DESIGN.md"],
-       prompt_template=load_prompt("security_review.md"),
-       timeout_s=600,
-   )
-   ```
-3. Compose into a pipeline:
-   ```python
-   def sdd_brownfield_with_security():
-       return [S.EXPLORE, S.RESEARCH, S.REQUIREMENTS,
-               S.DESIGN, S.SECURITY_REVIEW,
-               S.TEST_PLAN, S.IMPLEMENT, S.INTEGRATION_TEST]
-   ```
-4. Register a new CLI subcommand or env-flag to pick the new shape.
-
-No core changes. Pipeline doesn't care how many stages.
-
-### Add a new provider (different LLM, local model, etc.)
-
-Subclass `Agent` (or replace it). The contract is one method:
-
-```python
-class MyAgent(Agent):
-    def run(self, inv: AgentInvocation) -> AgentResult:
-        ...
-```
-
-Pass `Pipeline(stages=..., agent=MyAgent())` and you're done.
-
-### Add hooks (cost tracking, slack notifications, dashboards, retries)
-
-`PipelineHooks` has `before_stage`, `after_stage`, `on_agent_line`,
-`before_pipeline`, `after_pipeline`. Each is `None` by default; pass a callable
-to wire it up:
-
-```python
-def to_slack(stage, ctx, result):
-    requests.post(SLACK, json={"text": f"{stage.name}: {result.ok}"})
-
-hooks = PipelineHooks(after_stage=to_slack)
-Pipeline(stages=..., hooks=hooks).run(ctx, repo)
-```
-
-### Different pipeline shapes for different ticket types
-
-Add functions to `pipelines/__init__.py`:
-
-```python
-def hotfix() -> list[Stage]:
-    return [S.RESEARCH, S.IMPLEMENT, S.INTEGRATION_TEST]
-
-def docs_only() -> list[Stage]:
-    return [S.EXPLORE, S.IMPLEMENT, S.INTEGRATION_TEST]
-```
-
-Pick which one to run based on the issue's labels / your magic line / a CLI flag.
-
-### Parallel stages, retry, conditional skips
-
-All possible without touching `Pipeline` — most fit naturally as `Stage`
-subclasses or as hooks. If parallel stages become a thing, `Pipeline.run()`
-gains a small DAG mode (~20 lines). The current sequential flow stays the
-default.
-
-## Why this exists
-
-The original `/iterate` was a markdown skill that asked the model to invoke
-seven sub-skills in order. The model occasionally read a sub-skill's
-"Stop after writing the artifact" instruction and ended the run after stage 1.
-Recovery required killing the hung process and re-running.
-
-This package moves the loop into Python so:
-
-- Each stage is invoked deterministically by the orchestrator.
-- The orchestrator decides when to move on, not the model.
-- A failing stage halts the pipeline cleanly with a clear log line.
-- Resume just works (artifacts on disk = stage already done).
-- Adding stages, providers, or hooks doesn't require model-prompt gymnastics.
-
-## Install the slash command
+Symlinks `skills/*.md` into `~/.claude/commands/` and `bin/*.sh` into `~/bin/`. Idempotent — re-run after pulling. Override locations with env vars:
 
 ```bash
-./scripts/install-skills.sh
+CLAUDE_CMDS=~/.claude/commands  BIN_DIR=~/bin  \
+DEV=~/Documents/Dev  VAULT=~/Documents/ObsidianVault/Specs  \
+./install.sh
 ```
 
-Backs up the existing `~/.claude/commands/iterate.md` and replaces it with a
-thin wrapper that shells out to `python -m workspace_tools.cli iterate ...`.
+## Daily use
 
-## License
+1. **Capture a ticket.** Drop a markdown file in any project's `inbox/`:
+   ```
+   ~/Documents/Dev/<repo>/inbox/<slug>.md
+   ```
+2. **Status page renders automatically** at `~/Documents/ObsidianVault/Specs/_status.md`. Open it in Obsidian. The new ticket shows up as `📝 ready` with a `▶️ go` button.
+3. **Click `go`.** Terminal opens, `/iterate-fast` runs visibly: files the issue, branches, codes, tests, opens PR. Status row updates live with progress + ETA.
+4. **Review the PR on GitHub.** If you want changes, post a comment on the PR (not in Obsidian, not in the ticket file).
+5. **Click `↻ re-run with feedback`.** Terminal opens, `/pr-amend` runs: reads your comment, implements the delta, pushes, comments back. ~2-5 min.
+6. **Merge.** Click `✅ merge` in the status page or hit the GitHub merge button.
 
-MIT.
+## Adding a new skill
+
+1. Drop a `<name>.md` into `skills/`. YAML frontmatter must have `description:`.
+2. Re-run `./install.sh` to symlink it. The skill is immediately available as `/<name>` in Claude Code.
+3. If the skill should report progress to the status dashboard, call `~/bin/progress-tick.sh <step> <total> "<label>"` at each major step. Env vars are auto-set when the launcher invokes the skill.
+
+## What was abandoned
+
+The `workspace_tools/` Python orchestrator (still in this repo for reference). It chained subprocesses to the `claude` CLI to run a 7-stage SDD pipeline; the architecture meant 5–10 minutes of opaque silent execution for any non-trivial ticket, and amend cycles re-ran every stage. The skills approach replaces it with one Claude Code TUI session per task — visible streaming, warm prompt cache, surgical scope.
