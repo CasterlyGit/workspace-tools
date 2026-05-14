@@ -3,27 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>agent-harness — live ticket routing</title>
-<meta name="description" content="A set of skills and watchers that route ticket-shaped ideas into shipped PRs. Drop a sentence — watch which skill the harness picks, which repo it lands in, and what command it would run.">
+<title>workspace-tools — an agentic dev harness</title>
+<meta name="description" content="Ideas to shipped PRs without me touching the keyboard between. A Claude Code skill harness by Tarun (CasterlyGit).">
 <style>
   :root {
-    --bg: #0a0b0f;
-    --panel: #12131a;
-    --panel-2: #181a23;
-    --line: #232634;
-    --line-2: #2e3243;
-    --ink: #f1ecdf;
-    --ink-dim: #a8a395;
-    --muted: #5e5b51;
-    --accent: #ffa500;
-    --accent-2: #ffb733;
-    --accent-soft: rgba(255,165,0,0.12);
-    --accent-glow: rgba(255,165,0,0.45);
-    --green: #6fcf7f;
-    --green-soft: rgba(111,207,127,0.10);
-    --blue: #4a82c8;
-    --blue-soft: rgba(74,130,200,0.10);
-    --gray-chip: #2a2d3a;
+    --bg: #0c0a08;
+    --panel: #15110d;
+    --panel-2: #1c1612;
+    --line: #2a221b;
+    --ink: #f3ead8;
+    --ink-dim: #b3a690;
+    --muted: #6e6354;
+    --accent: #f5a623;
+    --accent-soft: rgba(245,166,35,0.15);
+    --accent-glow: rgba(245,166,35,0.45);
+    --green: #6abf69;
+    --red: #d96a5b;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); }
@@ -31,350 +26,164 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 16px; line-height: 1.6;
     background:
-      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(255,165,0,0.06), transparent 60%),
-      radial-gradient(ellipse 60% 40% at 90% 20%, rgba(74,130,200,0.05), transparent 70%),
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(245,166,35,0.06), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 30%, rgba(245,166,35,0.04), transparent 70%),
       var(--bg);
     min-height: 100vh;
-    overflow-x: hidden;
   }
-  .mono, .mono * { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-  h1, h2, h3, h4, .label {
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-weight: 600; letter-spacing: -0.01em;
-  }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  h1, h2, h3, .label { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-weight: 600; letter-spacing: -0.01em; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
 
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
-
-  header { padding: 72px 0 28px; }
-  header .tag {
-    font-family: ui-monospace, monospace; color: var(--accent);
-    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; margin-bottom: 18px;
-  }
-  h1 { font-size: clamp(32px, 5.2vw, 56px); margin: 0 0 22px; line-height: 1.05; letter-spacing: -0.02em; }
-  h1 .pop { color: var(--accent); }
-  .sub { font-size: clamp(16px, 1.6vw, 19px); color: var(--ink-dim); max-width: 760px; line-height: 1.55; }
-  .sub b { color: var(--ink); font-weight: 600; }
-  .repo-link {
-    display: inline-flex; align-items: center; gap: 8px; margin-top: 22px;
-    padding: 9px 14px; border: 1px solid var(--line); border-radius: 6px;
-    color: var(--ink-dim); font-size: 13px;
-    font-family: ui-monospace, monospace;
-  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; }
+  header { padding: 80px 0 40px; }
+  header .tag { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: var(--accent); font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 18px; }
+  h1 { font-size: clamp(38px, 6vw, 64px); margin: 0 0 24px; line-height: 1.05; }
+  .sub { font-size: clamp(17px, 2vw, 21px); color: var(--ink-dim); max-width: 720px; line-height: 1.5; }
+  .repo-link { display: inline-flex; align-items: center; gap: 8px; margin-top: 28px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink-dim); font-size: 14px; }
   .repo-link:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
 
-  section { padding: 52px 0; border-top: 1px solid var(--line); }
-  .section-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 22px; flex-wrap: wrap; }
-  .section-head h2 { font-size: 26px; margin: 0; }
-  .section-head .num { color: var(--accent); font-size: 13px; font-family: ui-monospace, monospace; }
-  .section-head .h2-sub { color: var(--muted); font-size: 13px; font-family: ui-monospace, monospace; margin-left: auto; }
+  section { padding: 60px 0; border-top: 1px solid var(--line); }
+  .section-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 36px; }
+  .section-head h2 { font-size: 28px; margin: 0; }
+  .section-head .num { color: var(--accent); font-size: 14px; }
 
-  /* ============ HERO ROUTER ============ */
-  .router {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    overflow: hidden;
-    margin-top: 16px;
-    box-shadow: 0 30px 80px -40px rgba(0,0,0,0.6);
+  /* Pipeline diagram */
+  .pipeline { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 24px 0; }
+  .pipeline .step {
+    padding: 24px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    text-align: center; transition: all 0.4s cubic-bezier(.2,.7,.3,1); position: relative;
   }
-  .router-bar {
-    display: flex; align-items: center; gap: 14px;
-    padding: 14px 22px; border-bottom: 1px solid var(--line);
-    background: var(--panel-2);
-    flex-wrap: wrap;
+  .pipeline .step .icon { width: 32px; height: 32px; margin: 0 auto 12px; opacity: 0.6; transition: opacity 0.4s; }
+  .pipeline .step .name { font-family: ui-monospace, monospace; font-size: 13px; color: var(--ink-dim); }
+  .pipeline .step .desc { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .pipeline .step.lit {
+    background: var(--accent-soft); border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 8px 32px -8px var(--accent-glow);
+    transform: translateY(-2px);
   }
-  .router-bar .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line-2); }
-  .router-bar .dot.r { background: #d96a5b; }
-  .router-bar .dot.y { background: #d4b35b; }
-  .router-bar .dot.g { background: #6abf69; }
-  .router-bar .title {
-    font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted);
-    margin-left: 6px;
-  }
-  .router-bar .spacer { flex: 1; }
-  .router-bar .hint {
-    font-family: ui-monospace, monospace; font-size: 11px; color: var(--ink-dim);
-    border: 1px solid var(--line-2); padding: 4px 10px; border-radius: 14px;
-    background: rgba(255,255,255,0.02);
-  }
-  .router-bar .hint b { color: var(--accent); }
-
-  .input-area { padding: 20px 22px 6px; }
-  .input-area .input-label {
-    font-family: ui-monospace, monospace; font-size: 11px;
-    letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
-    margin-bottom: 10px;
-  }
-  .input-area textarea {
-    width: 100%; min-height: 88px;
-    background: #07080c; color: var(--ink);
-    border: 1px solid var(--line-2); border-radius: 8px;
-    padding: 14px 16px;
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-size: 15px; line-height: 1.55;
-    resize: vertical;
-    outline: none;
-    transition: border-color 0.18s, box-shadow 0.18s;
-  }
-  .input-area textarea::placeholder { color: var(--muted); }
-  .input-area textarea:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-  }
-  .input-area .input-hint {
-    margin-top: 8px;
-    font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted);
-  }
-  .input-area .examples {
-    margin-top: 10px;
-    display: flex; flex-wrap: wrap; gap: 6px;
-  }
-  .input-area .examples .ex {
-    font-family: ui-monospace, monospace; font-size: 11px;
-    background: rgba(255,255,255,0.025); color: var(--ink-dim);
-    border: 1px solid var(--line); border-radius: 14px;
-    padding: 4px 10px;
-    cursor: pointer; transition: all 0.18s;
-  }
-  .input-area .examples .ex:hover {
-    border-color: var(--accent); color: var(--accent);
+  .pipeline .step.lit .icon { opacity: 1; }
+  .pipeline .step.lit .name { color: var(--accent); }
+  .pipeline .arrow { position: absolute; right: -12px; top: 50%; transform: translateY(-50%); color: var(--muted); z-index: 2; pointer-events: none; }
+  .pipeline .step:last-child .arrow { display: none; }
+  @media (max-width: 720px) {
+    .pipeline { grid-template-columns: repeat(2, 1fr); }
+    .pipeline .arrow { display: none; }
   }
 
-  /* routing chip grid */
-  .chips {
-    padding: 16px 22px 4px;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 10px;
+  /* Interactive demo */
+  .demo {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    overflow: hidden; margin-top: 16px;
   }
-  @media (max-width: 720px) { .chips { grid-template-columns: repeat(2, 1fr); } }
-  .chip {
-    background: rgba(255,255,255,0.018);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 12px 14px;
-    transition: border-color 0.22s, background 0.22s, transform 0.22s;
+  .demo-bar {
+    display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+    border-bottom: 1px solid var(--line); background: var(--panel-2);
   }
-  .chip.changed {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-    transform: translateY(-1px);
+  .demo-bar .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+  .demo-bar .dot.r { background: #d96a5b; }
+  .demo-bar .dot.y { background: #d4b35b; }
+  .demo-bar .dot.g { background: #6abf69; }
+  .demo-bar .title { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); margin-left: 8px; }
+  .demo-controls { padding: 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+  .demo-controls .progress-text { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); }
+  .btn {
+    padding: 10px 18px; background: var(--accent); color: #1a1208; border: none; border-radius: 6px;
+    font-family: ui-monospace, monospace; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.02em;
   }
-  .chip .lbl {
-    font-family: ui-monospace, monospace; font-size: 10px;
-    letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted);
-    margin-bottom: 6px;
-  }
-  .chip .val {
-    font-family: ui-monospace, monospace; font-size: 14px; color: var(--ink);
-    word-break: break-word;
-  }
-  .chip .val.dim { color: var(--ink-dim); }
-  .chip .val .accent { color: var(--accent); }
-  .chip .val .ambiguous { color: var(--ink-dim); font-style: italic; }
+  .btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px -6px var(--accent-glow); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.ghost { background: transparent; color: var(--ink-dim); border: 1px solid var(--line); }
+  .btn.ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); box-shadow: none; }
 
-  /* preview row */
-  .preview-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    border-top: 1px solid var(--line);
-    margin-top: 18px;
+  .stage {
+    padding: 28px 20px; min-height: 320px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;
   }
-  @media (max-width: 900px) {
-    .preview-row { grid-template-columns: 1fr; }
-    .preview-row .preview-col.left { border-right: 0; border-bottom: 1px solid var(--line); }
-  }
-  .preview-col { padding: 22px; }
-  .preview-col.left { border-right: 1px solid var(--line); }
-  .preview-col .col-lbl {
-    font-family: ui-monospace, monospace; font-size: 10px;
-    letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
-    margin-bottom: 14px;
-  }
+  @media (max-width: 720px) { .stage { grid-template-columns: 1fr; } }
 
-  /* github issue card preview */
-  .gh-issue {
-    background: #0d1117;
-    border: 1px solid #30363d;
-    border-radius: 8px;
-    overflow: hidden;
+  .stage-card {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 16px; min-height: 220px; transition: all 0.3s;
   }
-  .gh-issue .gh-head {
-    padding: 14px 16px 10px;
-    border-bottom: 1px solid #21262d;
-  }
-  .gh-issue .gh-status {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 10px; border-radius: 12px;
-    background: #1f6f3f; color: #c8e6cf;
-    font-family: -apple-system, sans-serif; font-size: 11px; font-weight: 600;
-    margin-bottom: 10px;
-  }
-  .gh-issue .gh-status .dotpip { width: 7px; height: 7px; border-radius: 50%; background: #6fcf7f; }
-  .gh-issue .gh-title {
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 16px; font-weight: 600; color: #e6edf3; line-height: 1.35;
-    margin: 0 0 6px;
-  }
-  .gh-issue .gh-meta {
-    font-family: -apple-system, sans-serif; font-size: 12px; color: #8b949e;
-  }
-  .gh-issue .gh-meta b { color: #e6edf3; font-weight: 600; }
-  .gh-issue .gh-body {
-    padding: 14px 16px;
-    font-family: -apple-system, sans-serif; font-size: 13px;
-    color: #c9d1d9; line-height: 1.55;
-    white-space: pre-wrap;
-    min-height: 60px;
-  }
-  .gh-issue .gh-labels {
-    padding: 10px 16px 14px;
-    display: flex; flex-wrap: wrap; gap: 6px;
-    border-top: 1px solid #21262d;
-  }
-  .gh-label {
-    display: inline-flex; align-items: center;
-    padding: 3px 9px; border-radius: 12px;
-    font-family: -apple-system, sans-serif; font-size: 11px; font-weight: 500;
-    border: 1px solid transparent;
-  }
-  .gh-label.bug { background: #5c1f1f; color: #ffb1ab; border-color: #7a2a2a; }
-  .gh-label.feature { background: #1f3a5c; color: #abc8ff; border-color: #2a4d7a; }
-  .gh-label.polish { background: #3a2a5c; color: #c8abff; border-color: #4d2a7a; }
-  .gh-label.chore { background: #3a3a3a; color: #c0c0c0; border-color: #555; }
-  .gh-label.p0 { background: #7a1f1f; color: #ffd4d0; border-color: #a02020; }
-  .gh-label.p1 { background: #5c3a1f; color: #ffd9a8; border-color: #7a4d2a; }
-  .gh-label.p2 { background: #2a3540; color: #a8c5e0; border-color: #3a4d60; }
-  .gh-label.p3 { background: #2a3a2a; color: #a8d8a8; border-color: #3a503a; }
-  .gh-label.size { background: #2a2a40; color: #b8b8d8; border-color: #3a3a55; }
+  .stage-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .stage-card .head { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+  .stage-card .head .title { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .stage-card .head .badge { font-family: ui-monospace, monospace; font-size: 10px; padding: 2px 8px; border-radius: 4px; background: var(--line); color: var(--ink-dim); }
+  .stage-card .head .badge.live { background: var(--accent); color: #1a1208; animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
 
-  /* CLI preview */
-  .cli-block {
-    background: #07080c;
-    border: 1px solid var(--line-2);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .cli-block .cli-head {
-    padding: 8px 14px;
-    border-bottom: 1px solid var(--line-2);
-    background: rgba(255,255,255,0.02);
-    font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted);
-    display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  }
-  .cli-block .cli-head .copy-btn {
-    background: transparent; color: var(--ink-dim);
-    border: 1px solid var(--line-2); border-radius: 4px;
-    font-family: ui-monospace, monospace; font-size: 10px;
-    padding: 3px 8px; cursor: pointer;
-    transition: all 0.18s;
-  }
-  .cli-block .cli-head .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
-  .cli-block .cli-head .copy-btn.copied { color: var(--green); border-color: var(--green); }
-  .cli-block pre {
-    margin: 0; padding: 14px 16px;
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 12.5px; line-height: 1.7; color: var(--ink-dim);
-    white-space: pre-wrap; word-break: break-word;
-    min-height: 60px;
-  }
-  .cli-block pre .acc { color: var(--accent); }
-  .cli-block pre .flag { color: var(--ink); }
-  .cli-block pre .str { color: #c8e6cf; }
-  .cli-block pre .dim { color: var(--muted); }
+  .obs-line { font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.7; color: var(--ink); white-space: pre-wrap; word-break: break-word; min-height: 130px; }
+  .obs-line .cursor { display: inline-block; width: 7px; height: 14px; background: var(--accent); animation: blink 1s infinite; vertical-align: middle; margin-left: 2px; }
+  @keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
 
-  .next-step {
-    margin-top: 18px;
-    padding: 14px 16px;
-    border: 1px dashed var(--line-2);
-    border-radius: 8px;
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    background: rgba(255,255,255,0.012);
+  .term {
+    font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.7; color: var(--ink-dim);
+    max-height: 220px; overflow-y: auto; white-space: pre-wrap;
   }
-  .next-step .arrow {
-    color: var(--accent); font-family: ui-monospace, monospace; font-size: 14px;
-  }
-  .next-step .txt {
-    font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--ink-dim);
-    flex: 1; min-width: 200px;
-  }
-  .next-step .txt b { color: var(--accent); }
+  .term .ok { color: var(--green); }
+  .term .acc { color: var(--accent); }
+  .term .dim { color: var(--muted); }
 
-  /* footer of router */
-  .router-foot {
-    padding: 14px 22px;
-    background: var(--panel-2);
-    border-top: 1px solid var(--line);
-    font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted);
-    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  .issue {
+    border: 1px solid var(--line); border-radius: 6px; padding: 12px; background: rgba(255,255,255,0.02);
+    margin-top: 10px; opacity: 0; transform: translateY(8px); transition: all 0.4s;
   }
-  .router-foot .live-dot {
-    display: inline-flex; align-items: center; gap: 6px;
-    color: var(--ink-dim);
-  }
-  .router-foot .live-dot .pip {
-    width: 7px; height: 7px; border-radius: 50%; background: var(--green);
-    animation: pulse 1.4s infinite;
-  }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .issue.show { opacity: 1; transform: translateY(0); }
+  .issue .num { color: var(--accent); font-family: ui-monospace, monospace; font-size: 11px; }
+  .issue .ttl { font-size: 14px; color: var(--ink); margin: 4px 0; }
+  .issue .labels { display: flex; gap: 6px; flex-wrap: wrap; }
+  .issue .lbl { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font-family: ui-monospace, monospace; }
 
-  /* ============ SKILLS GALLERY ============ */
-  .skills-note { color: var(--muted); font-size: 13px; margin-bottom: 14px; font-family: ui-monospace, monospace; }
-  .skills-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;
-  }
+  .diff { font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.6; padding: 12px; background: #0a0807; border: 1px solid var(--line); border-radius: 4px; margin-top: 10px; overflow-x: auto; }
+  .diff .add { color: var(--green); }
+  .diff .rm { color: var(--red); }
+  .diff .meta { color: var(--muted); }
+
+  .checklist { list-style: none; padding: 0; margin: 12px 0 0; }
+  .checklist li { font-family: ui-monospace, monospace; font-size: 12px; padding: 4px 0; color: var(--muted); display: flex; align-items: center; gap: 10px; transition: color 0.3s; }
+  .checklist li.done { color: var(--green); }
+  .checklist li .check { width: 14px; height: 14px; border: 1px solid var(--muted); border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; }
+  .checklist li.done .check { background: var(--green); border-color: var(--green); }
+  .checklist li.done .check::after { content: "✓"; color: #0c0a08; font-size: 10px; font-weight: bold; }
+
+  /* Skills gallery */
+  .skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
   .skill-card {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px;
-    cursor: pointer; transition: all 0.22s; position: relative; overflow: hidden;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px;
+    cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden;
   }
   .skill-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 12px 32px -10px var(--accent-glow); }
   .skill-card.open { border-color: var(--accent); background: var(--panel-2); }
-  .skill-card .name { font-family: ui-monospace, monospace; font-size: 13px; color: var(--accent); margin-bottom: 4px; }
+  .skill-card .name { font-family: ui-monospace, monospace; font-size: 14px; color: var(--accent); margin-bottom: 6px; }
   .skill-card .one-line { font-size: 13px; color: var(--ink-dim); }
-  .skill-card .invoke {
-    display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line);
-    font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); word-break: break-word;
-  }
+  .skill-card .invoke { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); }
   .skill-card .invoke .acc { color: var(--accent); }
   .skill-card.open .invoke { display: block; }
 
-  /* ============ PHILOSOPHY ============ */
-  .philo { padding: 52px 0 90px; }
-  .philo .quote { font-size: clamp(20px, 2.6vw, 28px); line-height: 1.42; color: var(--ink); max-width: 820px; letter-spacing: -0.01em; }
+  /* Philosophy */
+  .philo { padding: 60px 0 100px; }
+  .philo .quote { font-size: clamp(22px, 3vw, 30px); line-height: 1.4; color: var(--ink); max-width: 800px; letter-spacing: -0.01em; }
   .philo .quote em { color: var(--accent); font-style: normal; }
-  .philo .lines {
-    margin-top: 32px;
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 22px;
-    max-width: 960px;
-  }
-  .philo .line h4 { margin: 0 0 6px; font-size: 12px; color: var(--accent); font-family: ui-monospace, monospace; letter-spacing: 0.06em; }
-  .philo .line p { margin: 0; font-size: 14px; color: var(--ink-dim); line-height: 1.55; }
+  .philo .lines { margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; max-width: 920px; }
+  .philo .line h4 { margin: 0 0 8px; font-size: 13px; color: var(--accent); font-family: ui-monospace, monospace; }
+  .philo .line p { margin: 0; font-size: 14px; color: var(--ink-dim); }
 
-  footer { padding: 36px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  footer { padding: 40px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
   footer a { color: var(--ink-dim); }
-  footer .row { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
 </style>
 </head>
 <body>
 
 <header>
   <div class="wrap">
-    <div class="tag">agent-harness · live ticket routing</div>
-    <h1>Drop a sentence.<br>Watch the harness <span class="pop">route it</span>.</h1>
-    <p class="sub">A set of skills and watchers that turn ticket-shaped ideas into shipped PRs. Type below — the page infers which repo it belongs to, what kind of work it is, and which skill would pick it up. Everything runs in your browser, character by character.</p>
-    <a class="repo-link" href="https://github.com/CasterlyGit/agent-harness" target="_blank" rel="noopener">
+    <div class="tag">workspace-tools</div>
+    <h1>An agentic dev harness.</h1>
+    <p class="sub">Ideas to shipped pull requests without me touching the keyboard between. A directory of markdown skills, a directory of shell scripts, and Claude Code as the worker.</p>
+    <a class="repo-link mono" href="https://github.com/CasterlyGit/workspace-tools" target="_blank" rel="noopener">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-      github.com/CasterlyGit/agent-harness
+      github.com/CasterlyGit/workspace-tools
     </a>
   </div>
 </header>
@@ -382,87 +191,33 @@
 <section>
   <div class="wrap">
     <div class="section-head">
-      <div class="num">01</div>
-      <h2>The router</h2>
-      <span class="h2-sub">type · watch · everything updates live</span>
+      <div class="num mono">01</div>
+      <h2>The pipeline</h2>
     </div>
-
-    <div class="router">
-      <div class="router-bar">
-        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-        <span class="title">agent-harness / router.live</span>
-        <span class="spacer"></span>
-        <span class="hint">inferring in browser · <b>no server</b></span>
+    <p class="sub" style="font-size: 15px;">Hover any stage. Click <span class="mono" style="color:var(--accent)">play</span> to watch a ticket move from one end to the other.</p>
+    <div class="pipeline" id="pipeline">
+      <div class="step" data-i="0">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--accent)"><path d="M4 4h12l4 4v12H4z"/><path d="M16 4v4h4"/><path d="M8 12h8M8 16h6"/></svg>
+        <div class="name">obsidian ticket</div>
+        <div class="desc">inbox/&lt;slug&gt;.md</div>
+        <svg class="arrow" width="20" height="14" viewBox="0 0 20 14" fill="none"><path d="M1 7h17M13 2l5 5-5 5" stroke="currentColor" stroke-width="1.4"/></svg>
       </div>
-
-      <div class="input-area">
-        <div class="input-label">drop a ticket idea — one sentence</div>
-        <textarea id="ticket-input" placeholder="voice indicator hides under the menu bar" spellcheck="false"></textarea>
-        <div class="input-hint">try erasing it and typing your own. the routing below tracks your keystrokes.</div>
-        <div class="examples" id="examples">
-          <span class="ex" data-ex="voice indicator hides under the menu bar">voice indicator hides under the menu bar</span>
-          <span class="ex" data-ex="add youtube support to the music player">add youtube support to the music player</span>
-          <span class="ex" data-ex="emergency map breaks in chicago, urgent">emergency map breaks in chicago, urgent</span>
-          <span class="ex" data-ex="rewrite the whisper dictation pipeline end to end">rewrite the whisper dictation pipeline end to end</span>
-          <span class="ex" data-ex="polish the puck animation easing">polish the puck animation easing</span>
-        </div>
+      <div class="step" data-i="1">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--accent)"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9"/><path d="M12 3v3M12 18v3M21 12h-3M6 12H3"/></svg>
+        <div class="name">github issue</div>
+        <div class="desc">/file lands it on the board</div>
+        <svg class="arrow" width="20" height="14" viewBox="0 0 20 14" fill="none"><path d="M1 7h17M13 2l5 5-5 5" stroke="currentColor" stroke-width="1.4"/></svg>
       </div>
-
-      <div class="chips">
-        <div class="chip" id="chip-repo">
-          <div class="lbl">detected repo</div>
-          <div class="val dim" id="val-repo"><span class="ambiguous">ambiguous — would ask</span></div>
-        </div>
-        <div class="chip" id="chip-type">
-          <div class="lbl">detected type</div>
-          <div class="val" id="val-type">feature</div>
-        </div>
-        <div class="chip" id="chip-priority">
-          <div class="lbl">priority</div>
-          <div class="val" id="val-priority">P2</div>
-        </div>
-        <div class="chip" id="chip-skill">
-          <div class="lbl">skill that would fire</div>
-          <div class="val" id="val-skill"><span class="accent">/file</span> + <span class="accent">/iterate-fast</span></div>
-        </div>
+      <div class="step" data-i="2">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--accent)"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="12" r="2"/><path d="M6 8v8M8 6c8 0 8 6 8 6"/></svg>
+        <div class="name">branch &amp; code</div>
+        <div class="desc">/iterate-fast writes the diff</div>
+        <svg class="arrow" width="20" height="14" viewBox="0 0 20 14" fill="none"><path d="M1 7h17M13 2l5 5-5 5" stroke="currentColor" stroke-width="1.4"/></svg>
       </div>
-
-      <div class="preview-row">
-        <div class="preview-col left">
-          <div class="col-lbl">github issue preview</div>
-          <div class="gh-issue">
-            <div class="gh-head">
-              <span class="gh-status"><span class="dotpip"></span>Open</span>
-              <h3 class="gh-title" id="gh-title">drop a sentence above to begin</h3>
-              <div class="gh-meta"><b>CasterlyGit</b> would open this in <b id="gh-repo">ambiguous — would ask</b></div>
-            </div>
-            <div class="gh-body" id="gh-body">No description yet. Start typing.</div>
-            <div class="gh-labels" id="gh-labels">
-              <span class="gh-label feature">feature</span>
-              <span class="gh-label p2">priority:p2</span>
-              <span class="gh-label size">size:S</span>
-            </div>
-          </div>
-        </div>
-        <div class="preview-col right">
-          <div class="col-lbl">gh CLI command preview</div>
-          <div class="cli-block">
-            <div class="cli-head">
-              <span>shell · what /file would run</span>
-              <button class="copy-btn" id="copy-btn" type="button">copy</button>
-            </div>
-            <pre id="cli-pre"><span class="acc">$</span> <span class="dim">// type above…</span></pre>
-          </div>
-          <div class="next-step">
-            <span class="arrow">→</span>
-            <span class="txt">next: <b id="next-step-skill">/iterate-fast</b> picks up the issue, branches, edits files, runs tests, opens a PR.</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="router-foot">
-        <span class="live-dot"><span class="pip"></span> binding · input → routing → preview · re-renders on every keystroke</span>
-        <span><span id="char-count">0</span> chars · <span id="word-count">0</span> words</span>
+      <div class="step" data-i="3">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--accent)"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M6 8v10M18 8v8"/><path d="M8 6h7"/></svg>
+        <div class="name">PR opened</div>
+        <div class="desc">review, comment, merge</div>
       </div>
     </div>
   </div>
@@ -471,12 +226,57 @@
 <section>
   <div class="wrap">
     <div class="section-head">
-      <div class="num">02</div>
-      <h2>Skills</h2>
-      <span class="h2-sub">the receipt</span>
+      <div class="num mono">02</div>
+      <h2>Watch a ticket become a PR</h2>
     </div>
-    <p class="sub" style="font-size: 14px;">Each card is a real markdown skill in <span class="mono" style="color:var(--accent)">~/.claude/commands/</span>. Claude Code reads them as slash commands. Click any card to see how it is actually invoked.</p>
-    <div class="skills-note">~/.claude/commands/ · 11 skills · all idempotent · all visible in the terminal</div>
+    <p class="sub" style="font-size: 15px;">A fake-but-accurate replay of what happens between writing a sentence and merging the diff. Step through it.</p>
+
+    <div class="demo">
+      <div class="demo-bar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="title">~/Documents/ObsidianVault/Specs — watcher running</span>
+      </div>
+      <div class="demo-controls">
+        <span class="progress-text" id="progress-text">step 0 / 6 · idle</span>
+        <div>
+          <button class="btn ghost" id="reset-btn">reset</button>
+          <button class="btn" id="play-btn">play  ▸</button>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-card" id="card-left">
+          <div class="head">
+            <span class="title" id="left-title">obsidian inbox</span>
+            <span class="badge" id="left-badge">idle</span>
+          </div>
+          <div id="left-body">
+            <div class="obs-line"><span class="dim">echo "" &gt; ~/Documents/Dev/curby/inbox/add-export.md</span></div>
+            <div class="obs-line" id="obs-text" style="margin-top:8px;"><span class="dim">// waiting for ticket...</span></div>
+          </div>
+        </div>
+
+        <div class="stage-card" id="card-right">
+          <div class="head">
+            <span class="title" id="right-title">terminal</span>
+            <span class="badge" id="right-badge">—</span>
+          </div>
+          <div id="right-body">
+            <div class="term" id="term"><span class="dim">// nothing running</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <div class="num mono">03</div>
+      <h2>Skills</h2>
+    </div>
+    <p class="sub" style="font-size: 15px;">Each skill is one markdown file. Claude Code reads them as slash commands. Click a card to see how it is invoked.</p>
     <div class="skills-grid" id="skills-grid"></div>
   </div>
 </section>
@@ -484,14 +284,14 @@
 <section class="philo">
   <div class="wrap">
     <div class="section-head">
-      <div class="num">03</div>
-      <h2>Why this works</h2>
+      <div class="num mono">04</div>
+      <h2>Philosophy</h2>
     </div>
-    <p class="quote">Solo dev, AI augmented. The harness exists for one person who wants the throughput of a team — <em>no daemons, no web app, no permissions model.</em> Markdown is the API. Skills run visibly in a terminal. Every state can be rebuilt from disk on the next invocation.</p>
+    <p class="quote">Solo dev, AI augmented. The harness is for one person who wants the throughput of a team — <em>no daemons, no web app, no permissions model.</em> Markdown files are the API. Skills run visibly in the terminal. Every state can be rebuilt from disk on next invocation.</p>
     <div class="lines">
-      <div class="line"><h4>files are the api</h4><p>Every interaction crosses a markdown or JSON file boundary. Kill every process and the system reconstructs itself on next read.</p></div>
+      <div class="line"><h4>files are the api</h4><p>Every interaction crosses a markdown or JSON file boundary. Kill every process and the system rebuilds itself.</p></div>
       <div class="line"><h4>visible work</h4><p>Skills stream in the user's terminal. Read along, interrupt, course-correct. No opaque background pipeline.</p></div>
-      <div class="line"><h4>fast default</h4><p>Single-call skills by default. Multi-stage pipelines are opt-in, never silent upgrades. Don't waste tokens.</p></div>
+      <div class="line"><h4>fast default</h4><p>Single-call skills by default. Multi-stage pipelines are opt-in, never silent upgrades.</p></div>
       <div class="line"><h4>stateless workers</h4><p>Each skill invocation re-derives context from disk. Amend cycles are cheap and resumable.</p></div>
     </div>
   </div>
@@ -499,283 +299,276 @@
 
 <footer>
   <div class="wrap">
-    <div class="row">
-      <span class="mono">agent-harness</span>
-      <span>built by <a href="https://github.com/CasterlyGit" target="_blank" rel="noopener">@CasterlyGit</a> · <a href="https://github.com/CasterlyGit/agent-harness" target="_blank" rel="noopener">source on github</a></span>
-    </div>
+    <span class="mono">workspace-tools</span> · built by <a href="https://github.com/CasterlyGit" target="_blank" rel="noopener">CasterlyGit</a> · <a href="https://github.com/CasterlyGit/workspace-tools" target="_blank" rel="noopener">source</a>
   </div>
 </footer>
 
 <script>
 (function(){
-  const $ = (id) => document.getElementById(id);
-
-  // ===================== ROUTING RULES =====================
-  // Keyword -> repo map. Order matters: first hit wins.
-  const REPO_RULES = [
-    { repo: 'CasterlyGit/curby',           keywords: ['curby','cursor buddy','voice indicator','puck','menu bar','dictation overlay','obsidian watcher','inbox'] },
-    { repo: 'CasterlyGit/emergency-ai',    keywords: ['emergency','911','city','chicago','new york','seattle','los angeles','san francisco','austin','dispatch','triage'] },
-    { repo: 'CasterlyGit/laptop-dictation',keywords: ['dictation','whisper','transcribe','transcription','push-to-talk','ptt','clipboard','mic capture'] },
-    { repo: 'CasterlyGit/neon-stereo',     keywords: ['spotify','music','playlist','album','track','youtube music','soundcloud','audio player','stereo'] },
-    { repo: 'CasterlyGit/agent-harness',   keywords: ['harness','skill','iterate','epic','workflow','board','project','label','ticket router','watcher'] },
-  ];
-
-  // Type rules — checked in order.
-  const TYPE_RULES = [
-    { type: 'bug',     keywords: ['bug','broken','breaks','crash','crashes','crashed','fails','failing','error','errors','hangs','freeze','freezes','regression','fix ','wont ',"won't",'doesn\'t','does not','hides','disappears','missing'] },
-    { type: 'polish',  keywords: ['polish','tweak','refine','tighten','clean up','cleanup','minor','small ux','easing','animation','padding','spacing','copy fix'] },
-    { type: 'chore',   keywords: ['refactor','rename','reorganize','move','upgrade','bump','dependency','deps','build config','tooling','lint','typecheck','ci '] },
-    { type: 'feature', keywords: ['add','support','introduce','new ','build ','implement','enable','expose','allow'] },
-  ];
-
-  // Priority rules.
-  const PRIO_RULES = [
-    { prio: 'P0', keywords: ['p0','critical','urgent','asap','blocking','blocker','prod down','production down','sev0','sev 0'] },
-    { prio: 'P1', keywords: ['p1','important','high priority','high-pri','today','this morning'] },
-    { prio: 'P3', keywords: ['p3','nice to have','someday','low priority','low-pri','eventually','backlog'] },
-  ];
-
-  // Big-job heuristics — push to /iterate or /epic.
-  const BIG_KEYWORDS = ['rewrite','overhaul','redesign','migrate','migration','epic','multi-part','multipart','end to end','end-to-end','from scratch','revamp','rebuild'];
-
-  // ===================== INFER =====================
-  function lower(s){ return (s||'').toLowerCase(); }
-
-  function inferRepo(text) {
-    const t = lower(text);
-    if (!t.trim()) return null;
-    for (const rule of REPO_RULES) {
-      for (const kw of rule.keywords) {
-        if (t.includes(kw)) return rule.repo;
-      }
-    }
-    return null;
+  // === Pipeline auto-loop ===
+  const pipeSteps = document.querySelectorAll('.pipeline .step');
+  let pipeIdx = 0;
+  function loopPipe() {
+    pipeSteps.forEach(s => s.classList.remove('lit'));
+    pipeSteps[pipeIdx].classList.add('lit');
+    pipeIdx = (pipeIdx + 1) % pipeSteps.length;
   }
-
-  function inferType(text) {
-    const t = lower(text);
-    if (!t.trim()) return 'feature';
-    for (const rule of TYPE_RULES) {
-      for (const kw of rule.keywords) {
-        if (t.includes(kw)) return rule.type;
-      }
-    }
-    return 'feature';
-  }
-
-  function inferPriority(text) {
-    const t = lower(text);
-    if (!t.trim()) return 'P2';
-    for (const rule of PRIO_RULES) {
-      for (const kw of rule.keywords) {
-        if (t.includes(kw)) return rule.prio;
-      }
-    }
-    return 'P2';
-  }
-
-  function inferSize(text) {
-    const len = text.trim().length;
-    const words = text.trim().split(/\s+/).filter(Boolean).length;
-    if (words === 0) return 'S';
-    const t = lower(text);
-    const isBig = BIG_KEYWORDS.some(kw => t.includes(kw));
-    if (isBig) return 'L';
-    if (words > 22 || len > 140) return 'M';
-    return 'S';
-  }
-
-  function inferSkill(text) {
-    const t = lower(text);
-    const trimmed = text.trim();
-    if (!trimmed) return { primary: '/file', secondary: '/iterate-fast', note: 'small ticket → fast path' };
-    const isBig = BIG_KEYWORDS.some(kw => t.includes(kw));
-    const isEpic = /epic|multi-part|multipart|step\s*1|phase\s*1|in stages/i.test(text);
-    if (isEpic) return { primary: '/file', secondary: '/epic', note: 'multi-step → epic on one branch' };
-    if (isBig)  return { primary: '/file', secondary: '/iterate', note: 'larger ticket → full pipeline' };
-    return { primary: '/file', secondary: '/iterate-fast', note: 'small ticket → fast path' };
-  }
-
-  function titleFromText(text) {
-    const trimmed = text.trim();
-    if (!trimmed) return '';
-    // first sentence-ish, capped
-    let t = trimmed.split(/[\n.!?]/)[0].trim();
-    if (!t) t = trimmed;
-    // strip leading "add ", "fix " etc capitalization
-    if (t.length > 80) t = t.slice(0, 77).trim() + '…';
-    // capitalize first char
-    t = t.charAt(0).toUpperCase() + t.slice(1);
-    return t;
-  }
-
-  function shellQuote(s) {
-    // safe-ish for the preview — just escape double quotes
-    return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  }
-
-  // ===================== RENDER =====================
-  const input = $('ticket-input');
-  const valRepo = $('val-repo');
-  const valType = $('val-type');
-  const valPrio = $('val-priority');
-  const valSkill = $('val-skill');
-  const chipRepo = $('chip-repo');
-  const chipType = $('chip-type');
-  const chipPrio = $('chip-priority');
-  const chipSkill = $('chip-skill');
-  const ghTitle = $('gh-title');
-  const ghBody  = $('gh-body');
-  const ghLabels = $('gh-labels');
-  const ghRepo = $('gh-repo');
-  const cliPre = $('cli-pre');
-  const nextStepSkill = $('next-step-skill');
-  const charCount = $('char-count');
-  const wordCount = $('word-count');
-  const copyBtn = $('copy-btn');
-
-  const prev = { repo: null, type: null, prio: null, skill: null };
-
-  function flash(chipEl) {
-    chipEl.classList.remove('changed');
-    // force reflow to restart transition
-    void chipEl.offsetWidth;
-    chipEl.classList.add('changed');
-    clearTimeout(chipEl._flashT);
-    chipEl._flashT = setTimeout(() => chipEl.classList.remove('changed'), 700);
-  }
-
-  function render() {
-    const text = input.value;
-    const repo = inferRepo(text);
-    const type = inferType(text);
-    const prio = inferPriority(text);
-    const size = inferSize(text);
-    const skill = inferSkill(text);
-    const title = titleFromText(text);
-
-    // chips
-    if (repo) {
-      valRepo.classList.remove('dim');
-      valRepo.innerHTML = '<span class="accent">' + repo + '</span>';
-    } else {
-      valRepo.classList.add('dim');
-      valRepo.innerHTML = '<span class="ambiguous">ambiguous — would ask</span>';
-    }
-    valType.textContent = type;
-    valPrio.textContent = prio;
-    valSkill.innerHTML = '<span class="accent">' + skill.primary + '</span> + <span class="accent">' + skill.secondary + '</span>';
-
-    if (repo !== prev.repo) flash(chipRepo);
-    if (type !== prev.type) flash(chipType);
-    if (prio !== prev.prio) flash(chipPrio);
-    const skillKey = skill.primary + '+' + skill.secondary;
-    if (skillKey !== prev.skill) flash(chipSkill);
-    prev.repo = repo; prev.type = type; prev.prio = prio; prev.skill = skillKey;
-
-    // github issue card
-    if (title) {
-      ghTitle.textContent = title;
-      ghBody.textContent = text.trim();
-    } else {
-      ghTitle.textContent = 'drop a sentence above to begin';
-      ghBody.textContent = 'No description yet. Start typing.';
-    }
-    ghRepo.textContent = repo || 'ambiguous — would ask';
-
-    // labels
-    const prioLower = prio.toLowerCase();
-    ghLabels.innerHTML = ''
-      + '<span class="gh-label ' + type + '">' + type + '</span>'
-      + '<span class="gh-label ' + prioLower + '">priority:' + prioLower + '</span>'
-      + '<span class="gh-label size">size:' + size + '</span>';
-
-    // cli preview
-    if (!text.trim()) {
-      cliPre.innerHTML = '<span class="acc">$</span> <span class="dim">// type above…</span>';
-    } else {
-      const repoFlag = repo || 'CasterlyGit/&lt;ambiguous&gt;';
-      const titleQ = shellQuote(title);
-      const bodyOneLine = shellQuote(text.trim().replace(/\s+/g, ' '));
-      const cmd = ''
-        + '<span class="acc">$</span> gh issue create \\\n'
-        + '    <span class="flag">--repo</span> <span class="str">' + repoFlag + '</span> \\\n'
-        + '    <span class="flag">--title</span> <span class="str">"' + titleQ + '"</span> \\\n'
-        + '    <span class="flag">--body</span>  <span class="str">"' + bodyOneLine + '"</span> \\\n'
-        + '    <span class="flag">--label</span> <span class="str">' + type + '</span> \\\n'
-        + '    <span class="flag">--label</span> <span class="str">priority:' + prioLower + '</span> \\\n'
-        + '    <span class="flag">--label</span> <span class="str">size:' + size + '</span>\n'
-        + '<span class="dim"># then:</span>\n'
-        + '<span class="acc">$</span> claude ' + skill.secondary + ' &lt;issue-url&gt;';
-      cliPre.innerHTML = cmd;
-    }
-
-    // next step
-    nextStepSkill.textContent = skill.secondary;
-
-    // counters
-    charCount.textContent = text.length;
-    wordCount.textContent = text.trim() ? text.trim().split(/\s+/).length : 0;
-  }
-
-  // ===================== WIRE =====================
-  input.addEventListener('input', render);
-
-  // example chips
-  document.querySelectorAll('.examples .ex').forEach(el => {
-    el.addEventListener('click', () => {
-      input.value = el.dataset.ex || '';
-      input.focus();
-      render();
+  loopPipe();
+  let pipeTimer = setInterval(loopPipe, 1200);
+  pipeSteps.forEach((s, i) => {
+    s.addEventListener('mouseenter', () => {
+      clearInterval(pipeTimer);
+      pipeSteps.forEach(x => x.classList.remove('lit'));
+      s.classList.add('lit');
+    });
+    s.addEventListener('mouseleave', () => {
+      pipeIdx = i;
+      clearInterval(pipeTimer);
+      pipeTimer = setInterval(loopPipe, 1200);
     });
   });
 
-  // copy button
-  copyBtn.addEventListener('click', () => {
-    const text = cliPre.textContent.replace(/^\$\s/, '').trim();
-    if (!text || text.includes('// type above')) return;
-    try {
-      navigator.clipboard.writeText(text);
-      copyBtn.classList.add('copied');
-      copyBtn.textContent = 'copied';
-      setTimeout(() => { copyBtn.classList.remove('copied'); copyBtn.textContent = 'copy'; }, 1200);
-    } catch (e) {
-      // ignore
-    }
-  });
-
-  // seed with placeholder text
-  input.value = 'voice indicator hides under the menu bar';
-  render();
-  // first-time chip flash so the visitor sees animation immediately
-  prev.repo = null; prev.type = null; prev.prio = null; prev.skill = null;
-  render();
-
-  // ===================== SKILLS GALLERY =====================
+  // === Skills gallery ===
   const skills = [
-    {name: '/iterate-fast', line: 'Inbox ticket → issue → branch → code → test → PR. 3-8 min.', cmd: 'claude /iterate-fast ~/Documents/Dev/curby/inbox/add-export.md'},
-    {name: '/pr-amend',     line: 'Read latest PR comment, implement delta, push, reply. 2-5 min.', cmd: 'claude /pr-amend https://github.com/CasterlyGit/curby/pull/42'},
-    {name: '/file',         line: 'Quick GitHub issue filer. Lands on the right project board.',    cmd: 'claude /file "add CSV export to settings page"'},
-    {name: '/iterate',      line: 'Brownfield: issue → SDD pipeline → PR. Single fast call default.', cmd: 'claude /iterate https://github.com/CasterlyGit/curby/issues/17'},
-    {name: '/epic',         line: 'Split a big ticket into N steps on ONE branch, one PR.',          cmd: 'claude /epic ~/Documents/Dev/curby/inbox/onboarding-rewrite.md'},
-    {name: '/automate',     line: 'Greenfield: idea → new repo + project board + initial commit.',  cmd: 'claude /automate "tiny CLI that summarizes terminal output"'},
-    {name: '/onboard',      line: 'Pull an existing repo into the workflow: project, labels, columns.', cmd: 'claude /onboard CasterlyGit/some-old-repo'},
-    {name: '/hub',          line: 'Bootstrap the master Workspace project — all-up Jira-like view.', cmd: 'claude /hub'},
-    {name: '/board-setup',  line: 'Apply standard Status / Priority / Target fields to a Project v2.', cmd: 'claude /board-setup CasterlyGit/curby'},
-    {name: '/label-sync',   line: 'Apply standard label kit to a repo. Idempotent.',                 cmd: 'claude /label-sync CasterlyGit/curby'},
-    {name: '/ticket',       line: 'Drop a ticket into the Obsidian Specs watcher.',                  cmd: 'claude /ticket curby "add CSV export to settings"'},
+    {name: '/iterate-fast', line: 'inbox ticket → issue → branch → code → test → PR. 3-8 min.', cmd: 'claude /iterate-fast ~/Documents/Dev/curby/inbox/add-export.md'},
+    {name: '/pr-amend', line: 'Read latest PR comment, implement delta, push, reply. 2-5 min.', cmd: 'claude /pr-amend https://github.com/CasterlyGit/curby/pull/42'},
+    {name: '/file', line: 'Quick GitHub issue filer. Lands on the right project board.', cmd: 'claude /file "add CSV export to settings page"'},
+    {name: '/iterate', line: 'Brownfield: issue → SDD pipeline → PR. Single fast call default.', cmd: 'claude /iterate https://github.com/CasterlyGit/curby/issues/17'},
+    {name: '/epic', line: 'Split a big ticket into N steps on ONE branch, one PR.', cmd: 'claude /epic ~/Documents/Dev/curby/inbox/onboarding-rewrite.md'},
+    {name: '/automate', line: 'Greenfield: idea → new repo + project board + initial commit.', cmd: 'claude /automate "tiny CLI that summarizes terminal output"'},
+    {name: '/onboard', line: 'Pull an existing repo into the workflow: project, labels, columns.', cmd: 'claude /onboard CasterlyGit/some-old-repo'},
+    {name: '/hub', line: 'Bootstrap the master Workspace project — all-up Jira-like view.', cmd: 'claude /hub'},
+    {name: '/board-setup', line: 'Apply standard Status / Priority / Target fields to a Project v2.', cmd: 'claude /board-setup CasterlyGit/curby'},
+    {name: '/label-sync', line: 'Apply standard label kit to a repo. Idempotent.', cmd: 'claude /label-sync CasterlyGit/curby'},
+    {name: '/ticket', line: 'Drop a ticket into the Obsidian Specs watcher.', cmd: 'claude /ticket curby "add CSV export to settings"'},
   ];
-  const grid = $('skills-grid');
+  const grid = document.getElementById('skills-grid');
   skills.forEach(s => {
     const el = document.createElement('div');
     el.className = 'skill-card';
-    el.innerHTML = ''
-      + '<div class="name">' + s.name + '</div>'
-      + '<div class="one-line">' + s.line + '</div>'
-      + '<div class="invoke"><span class="acc">$</span> ' + s.cmd + '</div>';
+    el.innerHTML = `
+      <div class="name">${s.name}</div>
+      <div class="one-line">${s.line}</div>
+      <div class="invoke"><span class="acc">$</span> ${s.cmd}</div>
+    `;
     el.addEventListener('click', () => el.classList.toggle('open'));
     grid.appendChild(el);
   });
+
+  // === Interactive demo ===
+  const obsText = document.getElementById('obs-text');
+  const term = document.getElementById('term');
+  const leftBadge = document.getElementById('left-badge');
+  const rightBadge = document.getElementById('right-badge');
+  const leftTitle = document.getElementById('left-title');
+  const rightTitle = document.getElementById('right-title');
+  const cardLeft = document.getElementById('card-left');
+  const cardRight = document.getElementById('card-right');
+  const playBtn = document.getElementById('play-btn');
+  const resetBtn = document.getElementById('reset-btn');
+  const progressText = document.getElementById('progress-text');
+
+  const TICKET = "add: export saved tabs to JSON\n\nadd a button in settings → export\nwrites all saved tabs to a downloadable .json\nfile named curby-tabs-<date>.json";
+  let timeouts = [];
+  let running = false;
+  let stepN = 0;
+
+  function clearAll() {
+    timeouts.forEach(t => clearTimeout(t));
+    timeouts = [];
+  }
+  function sched(fn, ms) {
+    const t = setTimeout(fn, ms);
+    timeouts.push(t);
+    return t;
+  }
+  function setBadge(el, text, live) {
+    el.textContent = text;
+    el.classList.toggle('live', !!live);
+  }
+  function setProgress(n, label) {
+    stepN = n;
+    progressText.textContent = `step ${n} / 6 · ${label}`;
+  }
+
+  function reset() {
+    clearAll();
+    running = false;
+    obsText.innerHTML = '<span class="dim">// waiting for ticket...</span>';
+    term.innerHTML = '<span class="dim">// nothing running</span>';
+    leftTitle.textContent = 'obsidian inbox';
+    rightTitle.textContent = 'terminal';
+    setBadge(leftBadge, 'idle', false);
+    setBadge(rightBadge, '—', false);
+    cardLeft.classList.remove('active');
+    cardRight.classList.remove('active');
+    setProgress(0, 'idle');
+    playBtn.disabled = false;
+    playBtn.textContent = 'play  ▸';
+  }
+
+  function termAppend(html) {
+    if (term.querySelector('.dim') && term.children.length === 1 && term.firstChild.textContent.startsWith('// nothing')) {
+      term.innerHTML = '';
+    }
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    term.appendChild(div);
+    term.scrollTop = term.scrollHeight;
+  }
+
+  function typeInto(el, text, perChar, done) {
+    el.innerHTML = '';
+    let i = 0;
+    function tick() {
+      if (i >= text.length) {
+        const cur = document.createElement('span');
+        cur.className = 'cursor';
+        el.appendChild(cur);
+        if (done) done();
+        return;
+      }
+      const ch = text[i++];
+      if (ch === '\n') {
+        el.appendChild(document.createElement('br'));
+      } else {
+        el.appendChild(document.createTextNode(ch));
+      }
+      sched(tick, perChar + Math.random() * 14);
+    }
+    tick();
+  }
+
+  function play() {
+    if (running) return;
+    reset();
+    running = true;
+    playBtn.disabled = true;
+    playBtn.textContent = 'running…';
+
+    // STEP 1 — user types ticket
+    setProgress(1, 'drop ticket in Obsidian');
+    cardLeft.classList.add('active');
+    setBadge(leftBadge, 'typing', true);
+    typeInto(obsText, TICKET, 22, () => {
+      sched(step2, 600);
+    });
+
+    function step2() {
+      // STEP 2 — watcher fires
+      setProgress(2, 'fswatch fires, state.json updated');
+      setBadge(leftBadge, 'saved', false);
+      cardRight.classList.add('active');
+      rightTitle.textContent = 'inbox-watcher.sh';
+      setBadge(rightBadge, 'pulse', true);
+      termAppend('<span class="dim">[watch]</span> inbox/add-export.md <span class="acc">+1</span>');
+      sched(() => termAppend('<span class="dim">[render]</span> _status.md ← new ticket: <span class="acc">add-export</span> <span class="dim">(ready)</span>'), 500);
+      sched(() => termAppend('<span class="dim">[state]</span> writing inbox/.state.json'), 1000);
+      sched(step3, 1700);
+    }
+
+    function step3() {
+      // STEP 3 — /file runs, creates issue
+      setProgress(3, '/file creates GitHub issue');
+      rightTitle.textContent = 'claude /file curby';
+      setBadge(rightBadge, 'running', true);
+      termAppend('');
+      termAppend('<span class="acc">$</span> claude /file curby/inbox/add-export.md');
+      sched(() => termAppend('<span class="dim">→</span> drafting title and body'), 500);
+      sched(() => termAppend('<span class="dim">→</span> gh issue create --label feature --project Workspace'), 1100);
+      sched(() => termAppend('<span class="ok">✓</span> issue #41 created'), 1600);
+      sched(() => {
+        // also render issue in left card
+        leftTitle.textContent = 'github.com/curby';
+        setBadge(leftBadge, 'open', false);
+        obsText.innerHTML = '';
+        const issue = document.createElement('div');
+        issue.className = 'issue';
+        issue.innerHTML = `
+          <div class="num">CasterlyGit/curby #41</div>
+          <div class="ttl">add: export saved tabs to JSON</div>
+          <div class="labels">
+            <span class="lbl">feature</span>
+            <span class="lbl">ready</span>
+            <span class="lbl">size:S</span>
+          </div>
+        `;
+        obsText.appendChild(issue);
+        sched(() => issue.classList.add('show'), 50);
+      }, 1800);
+      sched(step4, 2700);
+    }
+
+    function step4() {
+      // STEP 4 — /iterate-fast: branch + code
+      setProgress(4, '/iterate-fast: branch + code');
+      rightTitle.textContent = 'claude /iterate-fast #41';
+      setBadge(rightBadge, 'coding', true);
+      termAppend('');
+      termAppend('<span class="acc">$</span> claude /iterate-fast curby#41');
+      sched(() => termAppend('<span class="dim">→</span> git checkout -b feat/export-saved-tabs'), 500);
+      sched(() => termAppend('<span class="dim">→</span> editing src/settings/ExportPanel.tsx'), 1000);
+      sched(() => termAppend('<span class="dim">→</span> editing src/lib/export.ts'), 1500);
+      sched(() => termAppend('<span class="dim">→</span> npm test'), 2100);
+      sched(() => termAppend('<span class="ok">✓</span> 27 passed, 0 failed'), 2700);
+      sched(step5, 3200);
+    }
+
+    function step5() {
+      // STEP 5 — PR opened
+      setProgress(5, 'PR opened, diff ready for review');
+      setBadge(rightBadge, 'pushing', true);
+      termAppend('<span class="dim">→</span> git push -u origin feat/export-saved-tabs');
+      sched(() => termAppend('<span class="dim">→</span> gh pr create --title "add: export saved tabs to JSON"'), 600);
+      sched(() => termAppend('<span class="ok">✓</span> PR #42 opened: <span class="acc">https://github.com/CasterlyGit/curby/pull/42</span>'), 1200);
+      sched(() => {
+        leftTitle.textContent = 'PR #42 — diff preview';
+        setBadge(leftBadge, '+38 -2', false);
+        obsText.innerHTML = '';
+        const diff = document.createElement('div');
+        diff.className = 'diff';
+        diff.innerHTML = `<span class="meta">diff --git a/src/lib/export.ts b/src/lib/export.ts</span>
+<span class="meta">@@ +1,18 @@</span>
+<span class="add">+ export function exportTabs(tabs: Tab[]) {</span>
+<span class="add">+   const blob = new Blob(</span>
+<span class="add">+     [JSON.stringify(tabs, null, 2)],</span>
+<span class="add">+     { type: 'application/json' }</span>
+<span class="add">+   );</span>
+<span class="add">+   const url = URL.createObjectURL(blob);</span>
+<span class="add">+   const a = document.createElement('a');</span>
+<span class="add">+   a.href = url;</span>
+<span class="add">+   a.download = \`curby-tabs-\${today()}.json\`;</span>
+<span class="add">+   a.click();</span>
+<span class="add">+   URL.revokeObjectURL(url);</span>
+<span class="add">+ }</span>`;
+        obsText.appendChild(diff);
+      }, 1400);
+      sched(step6, 2400);
+    }
+
+    function step6() {
+      // STEP 6 — merged
+      setProgress(6, 'merged, row flips to done');
+      setBadge(rightBadge, 'merged', false);
+      termAppend('');
+      termAppend('<span class="dim">[obsidian]</span> click <span class="acc">merge</span>');
+      sched(() => termAppend('<span class="dim">→</span> gh pr merge 42 --squash --delete-branch'), 500);
+      sched(() => termAppend('<span class="ok">✓</span> merged · branch deleted · state.json cleared'), 1100);
+      sched(() => termAppend('<span class="dim">[render]</span> _status.md ← add-export <span class="ok">done</span>'), 1500);
+      sched(() => {
+        setBadge(leftBadge, 'done', false);
+        cardLeft.classList.remove('active');
+        cardRight.classList.remove('active');
+        setProgress(6, 'done — replay anytime');
+        playBtn.disabled = false;
+        playBtn.textContent = 'replay  ↻';
+        running = false;
+      }, 2000);
+    }
+  }
+
+  playBtn.addEventListener('click', play);
+  resetBtn.addEventListener('click', reset);
 })();
 </script>
 </body>
